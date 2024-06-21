@@ -9,7 +9,7 @@
                         xmlns:componentSettings="clr-namespace:ClassIsland.Models.ComponentSettings"
                         mc:Ignorable="d" 
                         d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <TextBlock Text="{Binding Settings.TestProp, RelativeSource={RelativeSource FindAncestor, AncestorType=local:TestComponent}}"/>
+    <Grid VerticalAlignment="Center">
+        <TextBlock FontSize="16" Text="{Binding Settings.TestProp, RelativeSource={RelativeSource FindAncestor, AncestorType=local:TestComponent}}"/>
     </Grid>
 </controls:ComponentBase>
