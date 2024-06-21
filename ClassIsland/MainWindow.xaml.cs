@@ -186,7 +186,6 @@ public partial class MainWindow : Window
             ViewModel.DebugCurrentTime = ExactTimeService.GetCurrentLocalDateTime();
 
         UpdateWindowPos(true);
-        UpdateMouseStatus();
         if (ViewModel.Settings.WindowLayer == 0)
         {
             //SetBottom();
