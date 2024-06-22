@@ -387,7 +387,17 @@
                             </MultiDataTrigger.Conditions>
                             <Setter Property="Visibility" Value="Collapsed" />
                         </MultiDataTrigger>
-                        
+                        <!-- 窗口上课且全屏隐藏 -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding LessonsService.CurrentState, Mode=OneWay}" Value="OnClass" />
+                                <Condition Binding="{Binding ViewModel.IsForegroundFullscreen, Mode=OneWay}" Value="True" />
+                                <Condition Binding="{Binding ViewModel.Settings.HideOnClassAndFullscreen, Mode=OneWay}" Value="True" />
+                                <Condition Binding="{Binding ViewModel.IsNotificationWindowExplicitShowed, Mode=OneWay}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </MultiDataTrigger>
+
                     </Style.Triggers>
 
                     <Setter Property="Visibility" Value="{Binding ViewModel.IsMainWindowVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />

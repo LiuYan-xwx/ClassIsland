@@ -45,6 +45,7 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
     private int _windowLayer = 1;
     private bool _isMouseClickingEnabled = false;
     private bool _hideOnFullscreen = false;
+    private bool _hideOnClassandFullscreen = false;
     private bool _isClassOffNotificationEnabled = true;
     private ObservableCollection<string> _excludedFullscreenWindow = new()
     {
@@ -286,6 +287,17 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
         {
             if (value == _hideOnFullscreen) return;
             _hideOnFullscreen = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool HideOnClassAndFullscreen
+    {
+        get => _hideOnClassandFullscreen;
+        set
+        {
+            if (value == _hideOnClassandFullscreen) return;
+            _hideOnClassandFullscreen = value;
             OnPropertyChanged();
         }
     }

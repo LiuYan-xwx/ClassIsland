@@ -66,6 +66,8 @@
                                                           IsChecked="{Binding SettingsService.Settings.HideOnMaxWindow}" />
                         <CheckBox Content="前台是全屏窗口时"
                                                           IsChecked="{Binding SettingsService.Settings.HideOnFullscreen}" />
+                        <CheckBox Content="上课且前台是全屏窗口时"
+                                                          IsChecked="{Binding SettingsService.Settings.HideOnClassAndFullscreen}" />
                     </StackPanel>
                 </Expander>
             </materialDesign:Card>
