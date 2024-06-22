@@ -1,4 +1,13 @@
 # ClassIsland
+## 本仓库为非官方修改版，`test`分支下有许多奇怪的修改，谨慎使用
+> 上游分支为原仓库dev分支
+### 修改内容：
+- **Github Actions自动构建**，每次push触发，输出软件到artifacts
+- 移除了对鼠标指针位置的检查
+- **更改了测试组件**，可以当文本组件来用
+- **添加了新的隐藏窗口选项**：上课且前台是全屏窗口时
+### 如您想试试水，可以在actions中寻找下载
+
 
 ![软件截图-主界面](https://github.com/HelloWRC/ClassIsland/assets/55006226/65e2bdba-be83-444c-b42f-b893aaace9c3)
 
