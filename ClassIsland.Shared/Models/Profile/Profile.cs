@@ -2,7 +2,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-
+using ClassIsland.Shared.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ClassIsland.Shared.Models.Profile;
@@ -21,6 +21,12 @@ public class Profile : ObservableRecipient
     private ObservableCollection<Subject> _editingSubjects = new();
     private string? _tempClassPlanId;
     private DateTime _tempClassPlanSetupTime = DateTime.Now;
+    private ObservableDictionary<string, ClassPlanGroup> _classPlanGroups = new();
+    private string _selectedClassPlanGroupId = ClassPlanGroup.DefaultGroupGuid.ToString();
+    private string? _tempClassPlanGroupId;
+    private DateTime _tempClassPlanGroupExpireTime = DateTime.Now;
+    private bool _isTempClassPlanGroupEnabled = false;
+    private TempClassPlanGroupType _tempClassPlanGroupType = TempClassPlanGroupType.Inherit;
 
     /// <summary>
     /// 实例化对象
@@ -31,6 +37,23 @@ public class Profile : ObservableRecipient
         PropertyChanging += OnPropertyChanging;
         PropertyChanged += OnPropertyChanged;
         UpdateEditingSubjects();
+
+        // 初始化课表群
+        if (!ClassPlanGroups.ContainsKey(ClassPlanGroup.DefaultGroupGuid.ToString()))
+        {
+            ClassPlanGroups.Add(ClassPlanGroup.DefaultGroupGuid.ToString(), new()
+            {
+                Name = "默认"
+            });
+        }
+        if (!ClassPlanGroups.ContainsKey(ClassPlanGroup.GlobalGroupGuid.ToString()))
+        {
+            ClassPlanGroups.Add(ClassPlanGroup.GlobalGroupGuid.ToString(), new()
+            {
+                Name = "全局课表群",
+                IsGlobal = true
+            });
+        }
     }
 
     private void OnPropertyChanging(object? sender, PropertyChangingEventArgs e)
@@ -290,6 +313,90 @@ public class Profile : ObservableRecipient
         {
             if (value.Equals(_tempClassPlanSetupTime)) return;
             _tempClassPlanSetupTime = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 该档案包含的课表群。
+    /// </summary>
+    public ObservableDictionary<string, ClassPlanGroup> ClassPlanGroups
+    {
+        get => _classPlanGroups;
+        set
+        {
+            if (Equals(value, _classPlanGroups)) return;
+            _classPlanGroups = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 当前选中的课表群GUID。
+    /// </summary>
+    public string SelectedClassPlanGroupId
+    {
+        get => _selectedClassPlanGroupId;
+        set
+        {
+            if (value == _selectedClassPlanGroupId) return;
+            _selectedClassPlanGroupId = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 当前选中的临时课表群ID。
+    /// </summary>
+    public string? TempClassPlanGroupId
+    {
+        get => _tempClassPlanGroupId;
+        set
+        {
+            if (value == _tempClassPlanGroupId) return;
+            _tempClassPlanGroupId = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 当前选中的临时课表群失效时间。
+    /// </summary>
+    public DateTime TempClassPlanGroupExpireTime
+    {
+        get => _tempClassPlanGroupExpireTime;
+        set
+        {
+            if (value.Equals(_tempClassPlanGroupExpireTime)) return;
+            _tempClassPlanGroupExpireTime = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 是否启用临时课表群。
+    /// </summary>
+    public bool IsTempClassPlanGroupEnabled
+    {
+        get => _isTempClassPlanGroupEnabled;
+        set
+        {
+            if (value == _isTempClassPlanGroupEnabled) return;
+            _isTempClassPlanGroupEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 临时课表群类型。
+    /// </summary>
+    public TempClassPlanGroupType TempClassPlanGroupType
+    {
+        get => _tempClassPlanGroupType;
+        set
+        {
+            if (value == _tempClassPlanGroupType) return;
+            _tempClassPlanGroupType = value;
             OnPropertyChanged();
         }
     }
