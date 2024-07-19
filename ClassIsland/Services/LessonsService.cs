@@ -217,7 +217,10 @@ public class LessonsService : ObservableRecipient, ILessonsService
         IsClassPlanLoaded = true;
         // Activate selected item
         CurrentClassPlan.IsActivated = true;
-        CurrentClassPlan.TimeLayout.IsActivated = true;
+        if (!Settings.ExpAllowEditingActivatedTimeLayout)
+        {
+            CurrentClassPlan.TimeLayout.IsActivated = true;
+        }
 
         var isLessonConfirmed = false;
         // 更新选择
@@ -275,7 +278,7 @@ public class LessonsService : ObservableRecipient, ILessonsService
         OnClassLeftTime = tClassDelta;
         OnBreakingTimeLeftTime = NextBreakingTimeLayoutItem.StartSecond.TimeOfDay - ExactTimeService.GetCurrentLocalDateTime().TimeOfDay;
         // 获取状态信息
-        if (CurrentSelectedIndex == null)
+        if (CurrentSelectedIndex == null || CurrentSelectedIndex == -1)
         {
             CurrentState = TimeState.None;
         }

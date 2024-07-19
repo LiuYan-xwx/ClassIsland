@@ -10,7 +10,6 @@
       xmlns:controls2="clr-namespace:ClassIsland.Core.Controls;assembly=ClassIsland.Core"
       xmlns:weather="clr-namespace:ClassIsland.Core.Models.Weather;assembly=ClassIsland.Core"
       xmlns:models="clr-namespace:ClassIsland.Models"
-      xmlns:extensions="clr-namespace:ClassIsland.Core.Extensions;assembly=ClassIsland.Core"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="DebugPage"
@@ -50,10 +49,6 @@
                                               Click="MenuItemFeatureDebugWindow_OnClick"/>
             <MenuItem IsCheckable="True" Header="调试菜单"
                                               IsChecked="{Binding SettingsService.Settings.IsDebugEnabled}" />
-            <MenuItem IsCheckable="True" Header="调试终端"
-                                              IsChecked="{Binding SettingsService.Settings.IsDebugConsoleEnabled}"
-                                              Checked="MenuItemDebugConsole_OnChecked"
-                                              Unchecked="MenuItemDebugConsole_OnUnchecked" />
             <MenuItem IsCheckable="True" Header="MainWindowDebug"
                                               IsChecked="{Binding SettingsService.Settings.IsMainWindowDebugEnabled}" />
             <MenuItem Icon="{materialDesign:PackIcon Bomb}"

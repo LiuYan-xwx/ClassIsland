@@ -1,60 +1,85 @@
-﻿using System;
+﻿using ClassIsland.Models;
+using System;
 using System.Collections;
+using System.CommandLine.NamingConventionBinder;
+using System.CommandLine;
 using System.Diagnostics;
+using System.Threading;
+using ClassIsland.Shared.IPC.Protobuf.Client;
+using ClassIsland.Shared.IPC;
 
-namespace ClassIsland
+namespace ClassIsland;
+
+static class Program
 {
-    static class Program
+    [STAThread]
+    public static void Main(string[] args)
     {
-        [STAThread]
-        static void Main(string[] args)
+        var command = new RootCommand
         {
-            // 检查系统版本
-            bool isWin7 = Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.Minor == 1;
+            new Option<string>(["--updateReplaceTarget", "-urt"], "更新时要替换的文件"),
+            new Option<string>(["--updateDeleteTarget", "-udt"], "更新完成要删除的文件"),
+            new Option<string>(["--uri"], "启动时要导航到的Uri"),
+            new Option<bool>(["--waitMutex", "-m"], "重复启动应用时，等待上一个实例退出而非直接退出应用。"),
+            new Option<bool>(["--quiet", "-q"], "静默启动，启动时不显示Splash，并且启动后10秒内不显示任何通知。"),
+            new Option<bool>(["-prevSessionMemoryKilled", "-psmk"], "上个会话因MLE结束。"),
+            new Option<bool>(["-disableManagement", "-dm"], "在本次会话禁用集控。")
+        };
+        command.Handler = CommandHandler.Create((ApplicationCommand c) =>
+        {
+            App.ApplicationCommand = c;
+        });
+        command.Invoke(args);
 
-            string? env_GCName = Environment.GetEnvironmentVariable("DOTNET_GCName");
-            string? env_EnableWriteXorExecute = Environment.GetEnvironmentVariable("DOTNET_EnableWriteXorExecute");
+        var mutex = new Mutex(true, "ClassIsland.Lock", out var createNew);
 
-            if (isWin7)
+        if (!createNew)
+        {
+            if (App.ApplicationCommand.WaitMutex)
             {
-                if (env_GCName != null && env_EnableWriteXorExecute != null)
+                try
                 {
-                    if (env_GCName == "clrgc.dll" && env_EnableWriteXorExecute == "0")
-                    {
-                        App app = new App();
-                        app.InitializeComponent();
-                        app.Run();
-                    }
-                    else
-                    {
-                        ProcessStartInfo psi = Process.GetCurrentProcess().StartInfo;
-                        psi.EnvironmentVariables.Remove("DOTNET_GCName");
-                        psi.EnvironmentVariables.Remove("DOTNET_EnableWriteXorExecute");
-                        psi.EnvironmentVariables.Add("DOTNET_GCName", "clrgc.dll");
-                        psi.EnvironmentVariables.Add("DOTNET_EnableWriteXorExecute", "0");
-
-                        Process.Start(psi);
-                        Environment.Exit(0);
-                        return;
-                    }
+                    mutex?.WaitOne();
                 }
-                else
+                catch
                 {
-                    ProcessStartInfo psi = Process.GetCurrentProcess().StartInfo;
-                    psi.EnvironmentVariables.Add("DOTNET_GCName", "clrgc.dll");
-                    psi.EnvironmentVariables.Add("DOTNET_EnableWriteXorExecute", "0");
-
-                    Process.Start(psi);
-                    Environment.Exit(0);
-                    return;
+                    // ignored
                 }
             }
             else
             {
-                App app = new App();
-                app.InitializeComponent();
-                app.Run();
+                if (!string.IsNullOrWhiteSpace(App.ApplicationCommand.Uri))
+                {
+                    ProcessUriNavigation();
+                }
             }
+        }
+        var app = new App()
+        {
+            Mutex = mutex,
+            IsMutexCreateNew = createNew
+        };
+        app.InitializeComponent();
+        app.Run();
+    }
+
+    private static void ProcessUriNavigation()
+    {
+        try
+        {
+            var client = new IpcClient();
+            var uriSc =
+                new Shared.IPC.Protobuf.Service.UriNavigationService.UriNavigationServiceClient(
+                    client.Channel);
+            uriSc.Navigate(new UriNavigationScReq()
+            {
+                Uri = App.ApplicationCommand.Uri
+            });
+            Environment.Exit(0);
+        }
+        catch
+        {
+            // ignored
         }
     }
 }

@@ -51,6 +51,14 @@ using OfficeOpenXml;
 
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using UpdateStatus = ClassIsland.Shared.Enums.UpdateStatus;
+#if DEBUG
+using JetBrains.Profiler.Api;
+#endif
+using System.Xml.Linq;
+using ClassIsland.Services.Grpc;
+using ClassIsland.Shared.IPC;
+using ClassIsland.Shared.IPC.Protobuf.Client;
+using GrpcDotNetNamedPipes;
 
 namespace ClassIsland;
 /// <summary>
@@ -59,7 +67,8 @@ namespace ClassIsland;
 public partial class App : Application, IAppHost
 {
     private CrashWindow? CrashWindow;
-    private Mutex? Mutex;
+    public Mutex? Mutex { get; set; }
+    public bool IsMutexCreateNew { get; set; } = false;
     private ILogger<App>? Logger { get; set; }
     //public static IHost? Host;
 
@@ -129,7 +138,7 @@ public partial class App : Application, IAppHost
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         //DependencyPropertyHelper.ForceOverwriteDependencyPropertyDefaultValue(FrameworkElement.FocusVisualStyleProperty,
         //    Resources[SystemParameters.FocusVisualStyleKey]);
-
+        Environment.CurrentDirectory = System.Windows.Forms.Application.StartupPath;
 
         //ConsoleService.InitializeConsole();
         System.Windows.Forms.Application.EnableVisualStyles();
@@ -144,37 +153,10 @@ public partial class App : Application, IAppHost
         AppCenter.Start("7039a2b0-8b4e-4d2d-8d2c-3c993ec26514", typeof(Analytics), typeof(Crashes));
         await AppCenter.SetEnabledAsync(false);
 
-        var command = new RootCommand
-        {
-            new Option<string>(["--updateReplaceTarget", "-urt"], "更新时要替换的文件"),
-            new Option<string>(["--updateDeleteTarget", "-udt"], "更新完成要删除的文件"),
-            new Option<bool>(["--waitMutex", "-m"], "重复启动应用时，等待上一个实例退出而非直接退出应用。"),
-            new Option<bool>(["--quiet", "-q"], "静默启动，启动时不显示Splash，并且启动后10秒内不显示任何通知。"),
-            new Option<bool>(["-prevSessionMemoryKilled", "-psmk"], "上个会话因MLE结束。"),
-            new Option<bool>(["-disableManagement", "-dm"], "在本次会话禁用集控。")
-        };
-        command.Handler = CommandHandler.Create((ApplicationCommand c) =>
-        {
-            ApplicationCommand = c;
-        });
-        await command.InvokeAsync(e.Args);
-
         // 检测Mutex
-        Mutex = new Mutex(true, "ClassIsland.Lock", out var createNew);
-        if (!createNew)
+        if (!IsMutexCreateNew)
         {
-            if (ApplicationCommand.WaitMutex)
-            {
-                try
-                {
-                    Mutex.WaitOne();
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
-            else
+            if (!ApplicationCommand.WaitMutex)
             {
                 ProcessInstanceExisted();
                 Environment.Exit(0);
@@ -215,10 +197,9 @@ public partial class App : Application, IAppHost
             Process.Start(new ProcessStartInfo()
             {
                 FileName = ApplicationCommand.UpdateReplaceTarget,
-                ArgumentList = { "-udt", Environment.ProcessPath! }
+                ArgumentList = { "-udt", Environment.ProcessPath!, "-m", "true" }
             });
-            ReleaseLock();
-            Shutdown();
+            Restart();
             return;
         }
         if (ApplicationCommand.UpdateDeleteTarget != null)
@@ -258,6 +239,7 @@ public partial class App : Application, IAppHost
                 services.AddSingleton<ILessonsService, LessonsService>();
                 services.AddSingleton<IUriNavigationService, UriNavigationService>();
                 services.AddHostedService<MemoryWatchDogService>();
+                services.AddSingleton(new NamedPipeServer(IpcClient.PipeName));
                 try // 检测SystemSpeechService是否存在
                 {
                     _ = new SpeechSynthesizer();
@@ -290,12 +272,15 @@ public partial class App : Application, IAppHost
                 // Views
                 services.AddSingleton<MainWindow>();
                 services.AddSingleton<SplashWindow>();
-                services.AddSingleton<ProfileSettingsWindow>();
                 services.AddSingleton<HelpsWindow>();
                 services.AddTransient<FeatureDebugWindow>();
                 services.AddSingleton<TopmostEffectWindow>();
                 services.AddSingleton<AppLogsWindow>();
                 services.AddSingleton<SettingsWindowNew>();
+                services.AddSingleton<ProfileSettingsWindow>((s) => new ProfileSettingsWindow()
+                {
+                    MainViewModel = s.GetService<MainWindow>()?.ViewModel ?? new()
+                });
                 // 设置页面
                 services.AddSettingsPage<TestSettingsPage>();
                 services.AddSettingsPage<GeneralSettingsPage>();
@@ -313,6 +298,7 @@ public partial class App : Application, IAppHost
                 // 主界面组件
                 services.AddComponent<TextComponent, TextComponentSettingsControl>();
                 services.AddComponent<LegacyScheduleComponent>();
+                services.AddComponent<ScheduleComponent>();
                 services.AddComponent<DateComponent>();
                 services.AddComponent<ClockComponent, ClockComponentSettingsControl>();
                 services.AddComponent<WeatherComponent, WeatherComponentSettingsControl>();
@@ -338,7 +324,12 @@ public partial class App : Application, IAppHost
                     builder.SetMinimumLevel(LogLevel.Trace);
 #endif
                 });
+                // Grpc
+                services.AddGrpcService<RemoteUriNavigationService>();
             }).Build();
+#if DEBUG
+        MemoryProfiler.GetSnapshot("Host built");
+#endif
         CommandManager.RegisterClassCommandBinding(typeof(Window), new CommandBinding(UriNavigationCommands.UriNavigationCommand, UriNavigationCommandExecuted));
         CommandManager.RegisterClassCommandBinding(typeof(Page), new CommandBinding(UriNavigationCommands.UriNavigationCommand, UriNavigationCommandExecuted));
         await GetService<IManagementService>().SetupManagement();
@@ -353,7 +344,6 @@ public partial class App : Application, IAppHost
             Settings.DiagnosticMemoryKillCount++;
             Settings.DiagnosticLastMemoryKillTime = DateTime.Now;
         }
-        ConsoleService.ConsoleVisible = Settings.IsDebugConsoleEnabled;
         //OverrideFocusVisualStyle();
         Logger = GetService<ILogger<App>>();
         Logger.LogInformation("初始化应用。");
@@ -414,7 +404,13 @@ public partial class App : Application, IAppHost
         _ = IAppHost.Host.StartAsync();
         
         Logger.LogInformation("正在初始化MainWindow。");
+#if DEBUG
+        MemoryProfiler.GetSnapshot("Pre MainWindow init");
+#endif
         MainWindow = GetService<MainWindow>();
+#if DEBUG
+        MemoryProfiler.GetSnapshot("Pre MainWindow show");
+#endif
         GetService<MainWindow>().Show();
         GetService<ISplashService>().CurrentProgress = 90;
 
@@ -424,6 +420,9 @@ public partial class App : Application, IAppHost
         uriNavigationService.HandleAppNavigation("settings", args => GetService<SettingsWindowNew>().OpenUri(args.Uri));
         uriNavigationService.HandleAppNavigation("profile", args => GetService<MainWindow>().OpenProfileSettingsWindow());
         uriNavigationService.HandleAppNavigation("helps", args => GetService<MainWindow>().OpenHelpsWindow());
+
+        IAppHost.Host.BindGrpcServices();
+        GetService<NamedPipeServer>().Start();
     }
 
     private void UriNavigationCommandExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -440,7 +439,7 @@ public partial class App : Application, IAppHost
         //}
         try
         {
-            IAppHost.GetService<IUriNavigationService>().Navigate(new Uri(uri));
+            IAppHost.GetService<IUriNavigationService>().NavigateWrapped(new Uri(uri));
         }
         catch (Exception ex)
         {
@@ -571,13 +570,20 @@ public partial class App : Application, IAppHost
         app.Mutex?.ReleaseMutex();
     }
 
-    public static void Restart(bool quiet=false)
+    public static void Stop()
     {
+        IAppHost.Host?.Services.GetService<ILessonsService>()?.StopMainTimer();
+        IAppHost.Host?.Services.GetService<NamedPipeServer>()?.Kill();
         IAppHost.Host?.StopAsync(TimeSpan.FromSeconds(5));
         IAppHost.Host?.Services.GetService<SettingsService>()?.SaveSettings();
         IAppHost.Host?.Services.GetService<IProfileService>()?.SaveProfile();
         ReleaseLock();
         Current.Shutdown();
+    }
+
+    public static void Restart(bool quiet=false)
+    {
+        Stop();
         var path = Environment.ProcessPath;
         var args = new List<string> { "-m" };
         if (quiet)

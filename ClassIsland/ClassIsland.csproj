@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
@@ -15,14 +14,21 @@
     <IncludePackageReferencesDuringMarkupCompilation>true</IncludePackageReferencesDuringMarkupCompilation>
     <StartupObject>ClassIsland.Program</StartupObject>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+	    <OutputType>WinExe</OutputType>        
+		<DebugType>embedded</DebugType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+	    <OutputType>Exe</OutputType>
+    </PropertyGroup>
   <ItemGroup>
     <None Remove="assets\documents\ChangeLog.md" />
     <None Remove="Assets\Documents\image\Welcome\1694925761903.png" />
     <None Remove="Assets\HoYoStickers\帕姆_注意.png" />
   </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)'=='Debug'">
+        <PackageReference Include="JetBrains.Profiler.Api" Version="1.4.6" />
+    </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
     <PackageReference Include="Downloader" Version="3.0.6" />
