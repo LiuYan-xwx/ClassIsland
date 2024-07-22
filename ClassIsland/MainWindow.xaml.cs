@@ -810,6 +810,11 @@ public partial class MainWindow : Window
         SaveSettings();
     }
 
+    private void MenuItemDebugMoveClassIslandDirectory_OnClick(object sender, RoutedEventArgs e)
+    {
+        App.DirectoryIsDesktop(true);
+    }
+
     private void MenuItemHelps_OnClick(object sender, RoutedEventArgs e)
     {
         OpenHelpsWindow();

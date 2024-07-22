@@ -153,6 +153,7 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
     private Version _lastAppVersion = new Version("0.0.0.0");
     private bool _showComponentsMigrateTip = false;
     private bool _expAllowEditingActivatedTimeLayout = false;
+    private string _directoryIsDesktopShowed = "";
 
     public void NotifyPropertyChanged(string propertyName)
     {
@@ -177,6 +178,17 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
         {
             if (value == _isWelcomeWindowShowed) return;
             _isWelcomeWindowShowed = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string DirectoryIsDesktopShowed
+    {
+        get => _directoryIsDesktopShowed;
+        set
+        {
+            if (value == _directoryIsDesktopShowed) return;
+            _directoryIsDesktopShowed = value;
             OnPropertyChanged();
         }
     }
