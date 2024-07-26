@@ -55,6 +55,7 @@ using UpdateStatus = ClassIsland.Shared.Enums.UpdateStatus;
 using JetBrains.Profiler.Api;
 #endif
 using System.Xml.Linq;
+using ClassIsland.Core;
 using ClassIsland.Services.Grpc;
 using ClassIsland.Shared.IPC;
 using ClassIsland.Shared.IPC.Protobuf.Client;
@@ -64,7 +65,7 @@ namespace ClassIsland;
 /// <summary>
 /// Interaction logic for App.xaml
 /// </summary>
-public partial class App : Application, IAppHost
+public partial class App : AppBase, IAppHost
 {
     private CrashWindow? CrashWindow;
     public Mutex? Mutex { get; set; }
@@ -218,6 +219,7 @@ public partial class App : Application, IAppHost
         }
 
         FileFolderService.CreateFolders();
+        PluginService.ProcessPluginsInstall();
         bool isSystemSpeechSystemExist = false;
         IAppHost.Host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
@@ -567,12 +569,6 @@ public partial class App : Application, IAppHost
         }
     }
 
-    private bool CategoryLevelFilter(string? arg1, LogLevel arg2)
-    {
-        
-        return true;
-    }
-
     private void CrashesOnSendingErrorReport(object sender, SendingErrorReportEventArgs e)
     {
 
@@ -656,7 +652,7 @@ public partial class App : Application, IAppHost
         app.Mutex?.ReleaseMutex();
     }
 
-    public static void Stop()
+    public override void Stop()
     {
         IAppHost.Host?.Services.GetService<ILessonsService>()?.StopMainTimer();
         IAppHost.Host?.Services.GetService<NamedPipeServer>()?.Kill();
@@ -667,7 +663,7 @@ public partial class App : Application, IAppHost
         Current.Shutdown();
     }
 
-    public static void Restart(bool quiet=false)
+    public override void Restart(bool quiet=false)
     {
         Stop();
         var path = Environment.ProcessPath;

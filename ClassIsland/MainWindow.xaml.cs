@@ -692,7 +692,7 @@ public partial class MainWindow : Window
             e.Cancel = true;
             return;
         }
-        App.Stop();
+        AppBase.Current.Stop();
     }
 
     private void UpdateWindowPos(bool updateEffectWindow=false)
