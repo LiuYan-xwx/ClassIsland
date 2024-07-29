@@ -1,4 +1,4 @@
-﻿$PUBLISH_TARGET = "..\out\ClassIsland"
+﻿$PUBLISH_TARGET = ".\out\ClassIsland"
 
 if ($(Test-Path ./out) -eq $false) {
     mkdir out
